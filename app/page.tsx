@@ -1,195 +1,215 @@
-"use client"
+"use client";
 
-import { useState, useCallback, useEffect, useMemo } from "react"
-import { Button } from "@/components/ui/button"
-import { cn } from "@/lib/utils"
+import { useState } from "react";
 
-function Confetti() {
-  const [showConfetti, setShowConfetti] = useState(false)
+export default function Page() {
+  const [selectedDan, setSelectedDan] = useState<number | null>(null);
+  const [num, setNum] = useState(1);
+  const [answer, setAnswer] = useState("");
+  const [result, setResult] = useState("");
+  const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
+  const [showCorrectEquation, setShowCorrectEquation] = useState(false);
 
-  useEffect(() => {
-    const timer = setTimeout(() => setShowConfetti(true), 500)
-    return () => clearTimeout(timer)
-  }, [])
+  const nextProblem = () => {
+    setNum(Math.floor(Math.random() * 9) + 1);
+    setAnswer("");
+    setResult("");
+    setIsCorrect(null);
+    setShowCorrectEquation(false);
+  };
 
-  const confettiPieces = useMemo(() => {
-    return Array.from({ length: 80 }, (_, i) => ({
-      id: i,
-      left: Math.random() * 100,
-      delay: Math.random() * 1.5,
-      duration: 2.5 + Math.random() * 1.5,
-      color: ["#FF0000", "#FFD700", "#0066FF"][Math.floor(Math.random() * 3)],
-    }))
-  }, [])
+  const startDan = (dan: number) => {
+    setSelectedDan(dan);
+    setNum(Math.floor(Math.random() * 9) + 1);
+    setAnswer("");
+    setResult("");
+    setIsCorrect(null);
+    setShowCorrectEquation(false);
+  };
 
-  if (!showConfetti) return null
+  const checkAnswer = () => {
+    if (!selectedDan) return;
 
-  return (
-    <div className="pointer-events-none fixed inset-0 z-50 overflow-hidden">
-      {confettiPieces.map((piece) => (
-        <div
-          key={piece.id}
-          className="absolute"
-          style={{
-            left: `${piece.left}%`,
-            top: "-30px",
-            width: 10,
-            height: 10,
-            backgroundColor: piece.color,
-            animationDelay: `${piece.delay}s`,
-            animationDuration: `${piece.duration}s`,
-            borderRadius: "50%",
-          }}
-        />
-      ))}
-    </div>
-  )
-}
+    const correct = selectedDan * num;
 
-type GameState = "select" | "play" | "result"
-
-interface Question {
-  multiplicand: number
-  multiplier: number
-  answer: number
-  choices: number[]
-}
-
-function generateQuestionPool(selectedNumber: number): Question[] {
-  const questions: Question[] = []
-
-  for (let i = 1; i <= 9; i++) {
-    for (let j = 0; j < 5; j++) {
-      const answer = selectedNumber * i
-      const wrongs = new Set<number>()
-
-      while (wrongs.size < 3) {
-        const n = answer + Math.floor(Math.random() * 8) - 4
-        if (n > 0 && n !== answer) wrongs.add(n)
-      }
-
-      const choices = [answer, ...Array.from(wrongs)].sort(() => Math.random() - 0.5)
-
-      questions.push({
-        multiplicand: selectedNumber,
-        multiplier: i,
-        answer,
-        choices,
-      })
-    }
-  }
-
-  return questions.sort(() => Math.random() - 0.5)
-}
-
-export default function MultiplicationGame() {
-  const [gameState, setGameState] = useState<GameState>("select")
-  const [selectedNumber, setSelectedNumber] = useState<number | null>(null)
-  const [questions, setQuestions] = useState<Question[]>([])
-  const [currentIndex, setCurrentIndex] = useState(0)
-  const [feedback, setFeedback] = useState<"correct" | "wrong" | null>(null)
-  const [correctCount, setCorrectCount] = useState(0)
-
-  const currentQuestion = questions[currentIndex]
-
-  const startGame = (num: number) => {
-    setSelectedNumber(num)
-    setQuestions(generateQuestionPool(num))
-    setCurrentIndex(0)
-    setCorrectCount(0)
-    setFeedback(null)
-    setGameState("play")
-  }
-
-  const handleAnswer = (choice: number) => {
-    if (!currentQuestion || feedback) return
-
-    if (choice === currentQuestion.answer) {
-      setFeedback("correct")
-      setCorrectCount((prev) => prev + 1)
+    if (Number(answer) === correct) {
+      setResult("정답입니다 🎉");
+      setIsCorrect(true);
+      setShowCorrectEquation(true);
     } else {
-      setFeedback("wrong")
+      setResult("틀렸어요 😢 다시 풀어보세요");
+      setIsCorrect(false);
+      setShowCorrectEquation(false);
     }
-  }
+  };
 
-  const nextQuestion = useCallback(() => {
-    if (correctCount >= 29) {
-      setGameState("result")
-      return
-    }
-
-    setCurrentIndex((prev) => prev + 1)
-    setFeedback(null)
-  }, [correctCount])
-
-  useEffect(() => {
-    if (feedback === "correct") {
-      const timer = setTimeout(nextQuestion, 1000)
-      return () => clearTimeout(timer)
-    }
-  }, [feedback, nextQuestion])
-
-  if (gameState === "select") {
+  if (!selectedDan) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="grid grid-cols-2 gap-4">
-          {[2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
-            <Button key={num} onClick={() => startGame(num)} className="h-24 text-3xl">
-              {num}단
-            </Button>
+      <main
+        style={{
+          minHeight: "100vh",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          paddingTop: "40px",
+          fontFamily: "sans-serif",
+        }}
+      >
+        <h1 style={{ fontSize: "42px", fontWeight: "bold" }}>구구단 게임</h1>
+        <p style={{ marginTop: "20px", fontSize: "24px" }}>
+          연습할 단을 선택하세요
+        </p>
+
+        <div
+          style={{
+            marginTop: "40px",
+            display: "grid",
+            gridTemplateColumns: "repeat(2, 140px)",
+            gap: "18px",
+          }}
+        >
+          {[2, 3, 4, 5, 6, 7, 8, 9].map((dan) => (
+            <button
+              key={dan}
+              onClick={() => startDan(dan)}
+              style={{
+                height: "90px",
+                borderRadius: "18px",
+                border: "none",
+                backgroundColor: "#4f46e5",
+                color: "white",
+                fontSize: "34px",
+                fontWeight: "bold",
+                cursor: "pointer",
+              }}
+            >
+              {dan}단
+            </button>
           ))}
         </div>
-      </div>
-    )
-  }
-
-  if (gameState === "result") {
-    return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-4">
-        <Confetti />
-        <p className="text-5xl font-bold">축하합니다!</p>
-        <p className="text-3xl">{selectedNumber}단 마스터</p>
-      </div>
-    )
+      </main>
+    );
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-8 p-4">
-      {currentQuestion && (
-        <div className="rounded-3xl bg-white p-10 shadow-xl text-center">
-          <p className="text-6xl font-bold">
-            {feedback === "correct"
-              ? `${currentQuestion.multiplicand} × ${currentQuestion.multiplier} = ${currentQuestion.answer}`
-              : `${currentQuestion.multiplicand} × ${currentQuestion.multiplier}`}
-          </p>
-          {feedback && (
-            <p className="mt-4 text-2xl font-bold">
-              {feedback === "correct" ? "정답!" : "다시 도전!"}
-            </p>
-          )}
-        </div>
+    <main
+      style={{
+        minHeight: "100vh",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        paddingTop: "50px",
+        fontFamily: "sans-serif",
+      }}
+    >
+      <h1 style={{ fontSize: "40px", fontWeight: "bold" }}>
+        {selectedDan}단 연습
+      </h1>
+
+      <div
+        style={{
+          marginTop: "40px",
+          width: "320px",
+          height: "140px",
+          borderRadius: "20px",
+          backgroundColor: "#eef2ff",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          fontSize: "42px",
+          fontWeight: "bold",
+        }}
+      >
+        {showCorrectEquation
+          ? `${selectedDan} × ${num} = ${selectedDan * num}`
+          : `${selectedDan} × ${num}`}
+      </div>
+
+      <input
+        type="number"
+        value={answer}
+        onChange={(e) => setAnswer(e.target.value)}
+        style={{
+          marginTop: "30px",
+          width: "180px",
+          height: "60px",
+          fontSize: "32px",
+          textAlign: "center",
+          borderRadius: "12px",
+          border: "2px solid #ccc",
+        }}
+      />
+
+      {isCorrect === null && (
+        <button
+          onClick={checkAnswer}
+          style={{
+            marginTop: "20px",
+            width: "180px",
+            height: "60px",
+            fontSize: "26px",
+            borderRadius: "12px",
+            border: "none",
+            backgroundColor: "#4f46e5",
+            color: "white",
+            cursor: "pointer",
+          }}
+        >
+          정답 확인
+        </button>
       )}
 
-      {currentQuestion && (
-        <div className="grid grid-cols-2 gap-4 w-full max-w-md">
-          {currentQuestion.choices.map((choice, index) => (
-            <Button
-              key={index}
-              onClick={() => handleAnswer(choice)}
-              disabled={feedback !== null}
-              className={cn("h-24 text-4xl")}
-            >
-              {choice}
-            </Button>
-          ))}
-        </div>
-      )}
-
-      {feedback === "wrong" && (
-        <Button onClick={() => setFeedback(null)} className="h-14 px-8 text-2xl">
+      {isCorrect === false && (
+        <button
+          onClick={() => {
+            setAnswer("");
+            setResult("");
+            setIsCorrect(null);
+          }}
+          style={{
+            marginTop: "20px",
+            width: "180px",
+            height: "60px",
+            fontSize: "26px",
+            borderRadius: "12px",
+            border: "none",
+            backgroundColor: "#ef4444",
+            color: "white",
+            cursor: "pointer",
+          }}
+        >
           다시도전
-        </Button>
+        </button>
       )}
-    </div>
-  )
+
+      {isCorrect === true && (
+        <button
+          onClick={nextProblem}
+          style={{
+            marginTop: "20px",
+            width: "180px",
+            height: "60px",
+            fontSize: "26px",
+            borderRadius: "12px",
+            border: "none",
+            backgroundColor: "#22c55e",
+            color: "white",
+            cursor: "pointer",
+          }}
+        >
+          다음문제
+        </button>
+      )}
+
+      <p
+        style={{
+          marginTop: "24px",
+          fontSize: "28px",
+          fontWeight: "bold",
+        }}
+      >
+        {result}
+      </p>
+    </main>
+  );
 }
